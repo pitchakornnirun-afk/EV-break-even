@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tesla คืนทุน Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --bg2: #13161b;
+    --bg3: #1a1e25;
+    --border: rgba(255,255,255,0.07);
+    --border-active: rgba(255,255,255,0.18);
+    --text: #e8eaed;
+    --text2: #8b9099;
+    --text3: #555c66;
+    --green: #2de084;
+    --green-dim: rgba(45,224,132,0.12);
+    --green-mid: rgba(45,224,132,0.25);
+    --red: #ff5f5f;
+    --red-dim: rgba(255,95,95,0.10);
+    --amber: #ffb547;
+    --amber-dim: rgba(255,181,71,0.12);
+    --blue: #4d9fff;
+    --blue-dim: rgba(77,159,255,0.10);
+    --accent: #2de084;
+    --radius: 10px;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .app-header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+  }
+  .app-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .app-header .sub {
+    font-size: 13px;
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+    margin-bottom: 5px;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 73px);
+  }
+
+  /* LEFT PANEL */
+  .panel-left {
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 20px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* Model selector */
+  .model-select-wrap {
+    position: relative;
+    margin-bottom: 4px;
+  }
+  .model-select-wrap select {
+    width: 100%;
+    padding: 10px 36px 10px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border-active);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 14px;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .model-select-wrap select:focus { outline: none; border-color: var(--green); }
+  .model-select-wrap::after {
+    content: '▾';
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text2); pointer-events: none; font-size: 12px;
+  }
+  .model-badge {
+    display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;
+  }
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .badge.green { background: var(--green-dim); border-color: rgba(45,224,132,0.3); color: var(--green); }
+  .badge.blue { background: var(--blue-dim); border-color: rgba(77,159,255,0.3); color: var(--blue); }
+
+  /* Input field */
+  .field {
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 5px;
+  }
+  .field label .val-display {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .field input[type=range] {
+    width: 100%;
+    height: 3px;
+    -webkit-appearance: none;
+    background: var(--border-active);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .field input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px rgba(45,224,132,0.5);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .field input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .field input[type=number] {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    transition: border-color 0.2s;
+  }
+  .field input[type=number]:focus { outline: none; border-color: var(--green); }
+
+  .field-note {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 3px;
+  }
+
+  /* Oil scenario quick buttons */
+  .quick-btns {
+    display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .quick-btn {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .quick-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .quick-btn.active { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+
+  /* RIGHT PANEL */
+  .panel-right {
+    padding: 24px 28px;
+    overflow-y: auto;
+  }
+
+  /* Big breakeven card */
+  .be-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .be-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .be-card.good { border-color: rgba(45,224,132,0.3); }
+  .be-card.good::before { opacity: 1; }
+  .be-card.warn { border-color: rgba(255,181,71,0.3); }
+  .be-card.warn::before { background: linear-gradient(90deg, var(--amber), transparent); opacity: 1; }
+  .be-card.bad { border-color: rgba(255,95,95,0.3); }
+  .be-card.bad::before { background: linear-gradient(90deg, var(--red), transparent); opacity: 1; }
+
+  .be-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .be-label { font-size: 12px; color: var(--text2); letter-spacing: 0.5px; margin-bottom: 4px; }
+  .be-num {
+    font-family: var(--mono);
+    font-size: 52px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--green);
+    transition: color 0.3s;
+  }
+  .be-num.warn { color: var(--amber); }
+  .be-num.bad { color: var(--red); }
+  .be-unit { font-size: 20px; font-weight: 400; margin-left: 4px; }
+  .be-verdict {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    display: inline-block;
+    background: var(--green-dim);
+    color: var(--green);
+    font-weight: 500;
+  }
+  .be-verdict.warn { background: var(--amber-dim); color: var(--amber); }
+  .be-verdict.bad { background: var(--red-dim); color: var(--red); }
+
+  /* Metrics grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .m-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .m-card .m-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; letter-spacing: 0.3px; }
+  .m-card .m-val {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .m-card .m-val.g { color: var(--green); }
+  .m-card .m-val.r { color: var(--red); }
+  .m-card .m-val.a { color: var(--amber); }
+  .m-card .m-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* Cost per km bar */
+  .cmp-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 20px;
+  }
+  .cmp-title { font-size: 13px; font-weight: 500; margin-bottom: 14px; color: var(--text2); }
+  .bar-row { margin-bottom: 12px; }
+  .bar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .bar-name { font-size: 12px; color: var(--text2); }
+  .bar-val { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .bar-track { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+  /* Scenarios */
+  .scenarios-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .sc-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sc-card:hover { border-color: var(--border-active); }
+  .sc-card.active { border-color: var(--amber); background: var(--amber-dim); }
+  .sc-tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .sc-price { font-family: var(--mono); font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+  .sc-desc { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+  .sc-years { font-family: var(--mono); font-size: 20px; font-weight: 600; }
+
+  /* Yearly progress */
+  .yr-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 20px;
+  }
+  .yr-title { font-size: 13px; font-weight: 500; margin-bottom: 16px; color: var(--text2); }
+  .yr-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .yr-num { font-family: var(--mono); width: 36px; color: var(--text3); }
+  .yr-track { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .yr-fill { height: 100%; border-radius: 4px; background: var(--green); transition: width 0.5s; }
+  .yr-fill.done { background: var(--green); }
+  .yr-fill.partial { background: linear-gradient(90deg, var(--green), var(--amber)); }
+  .yr-pct { font-family: var(--mono); font-size: 11px; width: 40px; text-align: right; color: var(--text2); }
+  .yr-marker { font-size: 10px; color: var(--green); }
+
+  /* Note */
+  .note-box {
+    background: var(--blue-dim);
+    border: 1px solid rgba(77,159,255,0.2);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+  .note-box strong { color: var(--blue); }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .panel-left { border-right: none; border-bottom: 1px solid var(--border); }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .scenarios-grid { grid-template-columns: 1fr; }
+    .be-num { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="dot"></div>
+  <div>
+    <h1>Tesla vs HRV — คำนวณคืนทุน</h1>
+    <span class="sub">EV Payback Calculator · ราคา ณ มี.ค. 2569</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: INPUTS -->
+  <div class="panel-left">
+
+    <div class="section-label">รุ่น Tesla ที่สนใจ</div>
+    <div class="model-select-wrap">
+      <select id="modelSelect">
+        <option value="m3s">Model 3 Standard — 1,149,000 ฿</option>
+        <option value="m3lr">Model 3 Long Range RWD — 1,599,000 ฿</option>
+        <option value="mys">Model Y Standard RWD — 1,719,000 ฿</option>
+        <option value="mylr" selected>Model Y Long Range RWD — 2,019,000 ฿</option>
+      </select>
+    </div>
+    <div class="model-badge" id="modelBadge"></div>
+
+    <hr>
+    <div class="section-label">รถ HRV ปัจจุบัน</div>
+
+    <div class="field">
+      <label>
+        อัตราสิ้นเปลืองน้ำมัน
+        <span class="val-display" id="fuelEcoDisp">10 ล./100กม.</span>
+      </label>
+      <input type="range" id="fuelEco" min="7" max="16" step="0.5" value="10">
+      <div class="field-note">HRV 1.8 ปกติ 9–12 ล./100กม. ขึ้นกับการขับ</div>
+    </div>
+
+    <div class="field">
+      <label>ราคาขาย HRV (มือสอง)</label>
+      <input type="number" id="hrvValue" value="590000" step="10000" min="200000" max="900000">
+      <div class="field-note">HRV ปี 2018 ตลาดกลางประมาณ 529k–699k บาท</div>
+    </div>
+
+    <hr>
+    <div class="section-label">ราคาน้ำมัน</div>
+
+    <div class="quick-btns" id="quickBtns">
+      <button class="quick-btn active" data-price="34.68">ปัจจุบัน<br>34.68 ฿</button>
+      <button class="quick-btn" data-price="40">+5.3 ฿<br>40.00 ฿</button>
+      <button class="quick-btn" data-price="48">ฮอร์มุซ<br>48.00 ฿</button>
+      <button class="quick-btn" data-price="58">รุนแรง<br>58.00 ฿</button>
+    </div>
+
+    <div class="field">
+      <label>
+        ราคาน้ำมัน (฿/ลิตร)
+        <span class="val-display" id="oilDisp">34.68 ฿</span>
+      </label>
+      <input type="range" id="oilSlider" min="25" max="70" step="0.5" value="34.68">
+    </div>
+
+    <hr>
+    <div class="section-label">ค่าไฟ & การใช้งาน</div>
+
+    <div class="field">
+      <label>
+        ค่าไฟ (฿/หน่วย)
+        <span class="val-display" id="elecDisp">4.0 ฿</span>
+      </label>
+      <input type="range" id="elecSlider" min="2.5" max="6.5" step="0.1" value="4.0">
+      <div class="field-note">TOU Off-peak (ชาร์จหลังสี่ทุ่ม) ≈ 2.64 · ปกติ ≈ 4.80</div>
+    </div>
+
+    <div class="field">
+      <label>
+        ระยะขับต่อปี
+        <span class="val-display" id="kmDisp">20,000 กม.</span>
+      </label>
+      <input type="range" id="kmSlider" min="8000" max="50000" step="1000" value="20000">
+    </div>
+
+    <div class="field">
+      <label>ค่าติดตั้ง Wallbox (฿)</label>
+      <input type="number" id="wallbox" value="55000" step="5000" min="0" max="120000">
+      <div class="field-note">รวมมิเตอร์ TOU ประมาณ 22,900–59,700 บาท</div>
+    </div>
+
+    <div class="field">
+      <label>
+        ประหยัดซ่อมบำรุง/ปี (฿)
+        <span class="val-display">EV ซ่อมน้อยกว่า</span>
+      </label>
+      <input type="range" id="maintSlider" min="0" max="30000" step="1000" value="10000">
+      <div class="field-note" id="maintDisp">ประมาณ 10,000 ฿/ปี</div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: RESULTS -->
+  <div class="panel-right">
+
+    <!-- Big result -->
+    <div class="be-card" id="beCard">
+      <div class="be-top">
+        <div>
+          <div class="be-label">คืนทุนใน</div>
+          <div>
+            <span class="be-num" id="beNum">—</span>
+            <span class="be-num be-unit" id="beUnit">ปี</span>
+          </div>
+          <div class="be-verdict" id="beVerdict">กำลังคำนวณ...</div>
+        </div>
+        <div style="text-align:right">
+          <div class="be-label">ต้นทุนรวมที่ต้องคืน</div>
+          <div style="font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text)" id="totalCostDisp">—</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">= ราคา Tesla − ขาย HRV + Wallbox</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div>
+          <div class="be-label">ประหยัดต่อปี (รวม)</div>
+          <div style="font-family:var(--mono);font-size:18px;font-weight:500;color:var(--green)" id="totalSaveYr">—</div>
+        </div>
+        <div>
+          <div class="be-label">เทียบ/กม.</div>
+          <div style="font-family:var(--mono);font-size:18px;font-weight:500;color:var(--text2)" id="savePerKm">—</div>
+        </div>
+        <div>
+          <div class="be-label">รุ่นที่เลือก</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text)" id="modelNameDisp">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+      <div class="m-card">
+        <div class="m-label">ค่าน้ำมัน HRV/ปี</div>
+        <div class="m-val r" id="oilCostYr">—</div>
+        <div class="m-sub" id="oilCostSub">—</div>
+      </div>
+      <div class="m-card">
+        <div class="m-label">ค่าไฟ Tesla/ปี</div>
+        <div class="m-val g" id="elecCostYr">—</div>
+        <div class="m-sub" id="elecCostSub">—</div>
+      </div>
+      <div class="m-card">
+        <div class="m-label">ประหยัดเชื้อเพลิง/ปี</div>
+        <div class="m-val g" id="fuelSaveYr">—</div>
+        <div class="m-sub">ไม่รวมซ่อมบำรุง</div>
+      </div>
+      <div class="m-card">
+        <div class="m-label">ราคา Tesla</div>
+        <div class="m-val" id="teslaPriceDisp">—</div>
+        <div class="m-sub" id="teslaBattery">—</div>
+      </div>
+      <div class="m-card">
+        <div class="m-label">ขาย HRV ได้</div>
+        <div class="m-val" id="hrvValDisp">—</div>
+        <div class="m-sub">มูลค่าที่ตั้ง</div>
+      </div>
+      <div class="m-card">
+        <div class="m-label">ต้นทุนสุทธิ (ก่อน WB)</div>
+        <div class="m-val a" id="netBeforeWB">—</div>
+        <div class="m-sub">Tesla − HRV</div>
+      </div>
+    </div>
+
+    <!-- Cost per km comparison -->
+    <div class="cmp-section">
+      <div class="cmp-title">ต้นทุนพลังงาน ต่อกิโลเมตร</div>
+      <div class="bar-row">
+        <div class="bar-top">
+          <span class="bar-name">HRV (น้ำมัน)</span>
+          <span class="bar-val r" id="hrv-cpkm">—</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" id="hrv-bar" style="background:var(--red);width:0%"></div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top">
+          <span class="bar-name">Tesla (ไฟฟ้า)</span>
+          <span class="bar-val g" id="ev-cpkm">—</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" id="ev-bar" style="background:var(--green);width:0%"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text3)" id="cpkm-note">—</div>
+    </div>
+
+    <!-- Yearly progress table -->
+    <div class="yr-section">
+      <div class="yr-title">ความคืบหน้าการคืนทุน (รายปี)</div>
+      <div id="yrRows"></div>
+    </div>
+
+    <!-- Scenarios -->
+    <div style="font-size:13px;font-weight:500;color:var(--text2);margin-bottom:12px">สถานการณ์ราคาน้ำมัน (คลิกเพื่อใช้)</div>
+    <div class="scenarios-grid">
+      <div class="sc-card" onclick="applyScenario(34.68,'ปัจจุบัน')">
+        <div class="sc-tag" style="color:var(--blue)">Base</div>
+        <div class="sc-price" style="color:var(--blue)">34.68 ฿/ล.</div>
+        <div class="sc-desc">ราคาวันนี้ มี.ค. 2569</div>
+        <div class="sc-years" id="sc-base-yr" style="color:var(--blue)">—</div>
+      </div>
+      <div class="sc-card" onclick="applyScenario(48,'ฮอร์มุซ High')">
+        <div class="sc-tag" style="color:var(--amber)">High</div>
+        <div class="sc-price" style="color:var(--amber)">48.00 ฿/ล.</div>
+        <div class="sc-desc">WTI ~100$ ฮอร์มุซตึงตัว</div>
+        <div class="sc-years" id="sc-high-yr" style="color:var(--amber)">—</div>
+      </div>
+      <div class="sc-card" onclick="applyScenario(58,'ฮอร์มุซ Extreme')">
+        <div class="sc-tag" style="color:var(--red)">Extreme</div>
+        <div class="sc-price" style="color:var(--red)">58.00 ฿/ล.</div>
+        <div class="sc-desc">WTI ~120$ ปิดยาว</div>
+        <div class="sc-years" id="sc-ext-yr" style="color:var(--red)">—</div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      <strong>หมายเหตุ:</strong> การคำนวณนี้ไม่รวม <strong>depreciation</strong> (Tesla เสื่อมค่า ~10–15%/ปีในช่วง 5 ปีแรก) และ <strong>ดอกเบี้ยสินเชื่อ</strong> หากต้องกู้ — ทั้งสองตัวนี้จะยืด breakeven ออกไปอีก · ค่าประกันภัย EV อาจสูงกว่า HRV ประมาณ 5,000–15,000 ฿/ปี
+    </div>
+
+  </div>
+</div>
+
+<script>
+const MODELS = {
+  m3s:  { name:'Model 3 Standard',      price:1149000, kwhPer100:14.5, range:534, battery:57 },
+  m3lr: { name:'Model 3 Long Range RWD', price:1599000, kwhPer100:13.5, range:629, battery:75 },
+  mys:  { name:'Model Y Standard RWD',   price:1719000, kwhPer100:16.0, range:466, battery:60 },
+  mylr: { name:'Model Y Long Range RWD', price:2019000, kwhPer100:15.0, range:551, battery:75 },
+};
+
+function fmt(n) { return Math.round(n).toLocaleString('th-TH'); }
+function fmtD(n,d=2) { return parseFloat(n).toFixed(d); }
+
+function getInputs() {
+  return {
+    model:    document.getElementById('modelSelect').value,
+    fuelEco:  parseFloat(document.getElementById('fuelEco').value),
+    oilPrice: parseFloat(document.getElementById('oilSlider').value),
+    elec:     parseFloat(document.getElementById('elecSlider').value),
+    kmYear:   parseInt(document.getElementById('kmSlider').value),
+    hrvValue: parseInt(document.getElementById('hrvValue').value) || 590000,
+    wallbox:  parseInt(document.getElementById('wallbox').value) || 55000,
+    maint:    parseInt(document.getElementById('maintSlider').value),
+  };
+}
+
+function calc(inp, oilOverride) {
+  const m = MODELS[inp.model];
+  const oil = oilOverride !== undefined ? oilOverride : inp.oilPrice;
+  const netCost = (m.price - inp.hrvValue) + inp.wallbox;
+  const oilCost = (inp.kmYear / 100) * inp.fuelEco * oil;
+  const elecCost = (inp.kmYear / 100) * m.kwhPer100 * inp.elec;
+  const fuelSave = oilCost - elecCost;
+  const totalSave = fuelSave + inp.maint;
+  const years = totalSave > 0 ? netCost / totalSave : 9999;
+  const hrvCpkm = (inp.fuelEco * oil) / 100;
+  const evCpkm = (m.kwhPer100 * inp.elec) / 100;
+  return { netCost, oilCost, elecCost, fuelSave, totalSave, years, hrvCpkm, evCpkm, m, oil };
+}
+
+function render() {
+  const inp = getInputs();
+  const r = calc(inp);
+
+  // Update slider displays
+  document.getElementById('fuelEcoDisp').textContent = fmtD(inp.fuelEco,1) + ' ล./100กม.';
+  document.getElementById('oilDisp').textContent = fmtD(inp.oilPrice,2) + ' ฿';
+  document.getElementById('elecDisp').textContent = fmtD(inp.elec,1) + ' ฿';
+  document.getElementById('kmDisp').textContent = fmt(inp.kmYear) + ' กม.';
+  document.getElementById('maintDisp').textContent = 'ประมาณ ' + fmt(inp.maint) + ' ฿/ปี';
+
+  // Model badge
+  const m = r.m;
+  document.getElementById('modelBadge').innerHTML =
+    `<span class="badge green">${fmt(m.price)} ฿</span>
+     <span class="badge blue">${m.range} กม./ชาร์จ</span>
+     <span class="badge">${m.kwhPer100} kWh/100กม.</span>`;
+  document.getElementById('modelNameDisp').textContent = m.name;
+  document.getElementById('teslaPriceDisp').textContent = fmt(m.price) + ' ฿';
+  document.getElementById('teslaBattery').textContent = `แบต ${m.battery} kWh · ${m.range} กม.`;
+  document.getElementById('hrvValDisp').textContent = fmt(inp.hrvValue) + ' ฿';
+  document.getElementById('netBeforeWB').textContent = fmt(m.price - inp.hrvValue) + ' ฿';
+
+  // Big card
+  const beCard = document.getElementById('beCard');
+  const beNum = document.getElementById('beNum');
+  const beVerdict = document.getElementById('beVerdict');
+  let cls = 'good', vcls = '', vtext = '';
+  if (r.years < 999) {
+    beNum.textContent = fmtD(r.years, 1);
+    document.getElementById('beUnit').textContent = 'ปี';
+    if (r.years <= 5) { cls='good'; vcls=''; vtext='คืนทุนเร็ว — น่าสนใจมาก'; }
+    else if (r.years <= 8) { cls='warn'; vcls='warn'; vtext='คืนทุนปานกลาง — พอสมควร'; }
+    else { cls='bad'; vcls='bad'; vtext='คืนทุนช้า — ต้องน้ำมันแพงกว่านี้'; }
+  } else {
+    beNum.textContent = '∞'; document.getElementById('beUnit').textContent = '';
+    cls='bad'; vcls='bad'; vtext='ยังไม่คืนทุน';
+  }
+  beCard.className = 'be-card ' + cls;
+  beNum.className = 'be-num ' + vcls;
+  beVerdict.className = 'be-verdict ' + vcls;
+  beVerdict.textContent = vtext;
+
+  document.getElementById('totalCostDisp').textContent = fmt(r.netCost) + ' ฿';
+  document.getElementById('totalSaveYr').textContent = '+' + fmt(r.totalSave) + ' ฿/ปี';
+  document.getElementById('savePerKm').textContent = fmtD(r.hrvCpkm - r.evCpkm, 2) + ' ฿/กม. ถูกกว่า';
+
+  // Metrics
+  document.getElementById('oilCostYr').textContent = fmt(r.oilCost) + ' ฿';
+  document.getElementById('oilCostSub').textContent = inp.fuelEco + ' ล./100 × ' + fmtD(inp.oilPrice,2) + ' ฿';
+  document.getElementById('elecCostYr').textContent = fmt(r.elecCost) + ' ฿';
+  document.getElementById('elecCostSub').textContent = m.kwhPer100 + ' kWh/100 × ' + fmtD(inp.elec,1) + ' ฿';
+  document.getElementById('fuelSaveYr').textContent = fmt(r.fuelSave) + ' ฿';
+
+  // Cost per km bars
+  const maxC = Math.max(r.hrvCpkm, r.evCpkm) * 1.2;
+  document.getElementById('hrv-cpkm').textContent = fmtD(r.hrvCpkm,2) + ' ฿/กม.';
+  document.getElementById('ev-cpkm').textContent = fmtD(r.evCpkm,2) + ' ฿/กม.';
+  document.getElementById('hrv-bar').style.width = Math.min(100,(r.hrvCpkm/maxC)*100).toFixed(1) + '%';
+  document.getElementById('ev-bar').style.width = Math.min(100,(r.evCpkm/maxC)*100).toFixed(1) + '%';
+  const saving = ((r.hrvCpkm - r.evCpkm) / r.hrvCpkm * 100);
+  document.getElementById('cpkm-note').textContent = `Tesla ถูกกว่า ${fmtD(saving,0)}% ต่อกิโลเมตร · ประหยัดปีละ ${fmt(inp.kmYear * (r.hrvCpkm - r.evCpkm))} ฿`;
+
+  // Yearly progress
+  const maxYrs = Math.min(12, Math.ceil(r.years < 999 ? r.years + 2 : 12));
+  let html = '';
+  for (let y = 1; y <= maxYrs; y++) {
+    const recovered = Math.min(r.totalSave * y, r.netCost);
+    const pct = (recovered / r.netCost) * 100;
+    const isDone = r.totalSave * y >= r.netCost;
+    const isPartial = !isDone && r.totalSave * (y-1) < r.netCost;
+    const fillCls = isDone ? 'done' : (isPartial ? 'partial' : '');
+    const marker = isDone && r.totalSave * (y-1) < r.netCost ? ' ← คืนทุน' : '';
+    html += `<div class="yr-row">
+      <span class="yr-num">ปี ${y}</span>
+      <div class="yr-track"><div class="yr-fill ${fillCls}" style="width:${Math.min(100,pct).toFixed(1)}%"></div></div>
+      <span class="yr-pct">${Math.min(100,pct).toFixed(0)}%</span>
+      <span class="yr-marker">${marker}</span>
+    </div>`;
+    if (isDone && y < maxYrs) { maxYrs; break; }
+  }
+  document.getElementById('yrRows').innerHTML = html;
+
+  // Scenario cards
+  [34.68, 48, 58].forEach((price, i) => {
+    const sr = calc(inp, price);
+    const ids = ['sc-base-yr','sc-high-yr','sc-ext-yr'];
+    document.getElementById(ids[i]).textContent = sr.years < 999 ? fmtD(sr.years,1) + ' ปี' : '∞';
+  });
+
+  // Quick button active state
+  document.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.classList.toggle('active', parseFloat(btn.dataset.price) === inp.oilPrice);
+  });
+}
+
+function applyScenario(price, label) {
+  document.getElementById('oilSlider').value = price;
+  render();
+}
+
+// Quick buttons
+document.querySelectorAll('.quick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('oilSlider').value = btn.dataset.price;
+    render();
+  });
+});
+
+// All inputs
+['modelSelect','oilSlider','elecSlider','kmSlider','fuelEco','maintSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+['hrvValue','wallbox'].forEach(id => {
+  document.getElementById(id).addEventListener('change', render);
+  document.getElementById(id).addEventListener('input', render);
+});
+
+render();
+</script>
+</body>
+</html>
